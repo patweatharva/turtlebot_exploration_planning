@@ -185,7 +185,7 @@ foreach(t ${turtlebot_exploration_planning_EXPORTED_TARGETS})
   endif()
 endforeach()
 
-set(depends "roscpp;std_msgs;sensor_msgs;pcl_ros")
+set(depends "nav_msgs;roscpp;rospy;sensor_msgs;std_msgs;pcl_ros")
 foreach(depend ${depends})
   string(REPLACE " " ";" depend_list ${depend})
   # the package name of the dependency must be kept in a unique variable so that it is not overwritten in recursive calls

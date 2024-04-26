@@ -1,0 +1,2 @@
+/usr/bin/ar qc devel/lib/libsensor_coverage_planner_ground.a  CMakeFiles/sensor_coverage_planner_ground.dir/src/sensor_coverage_planner/sensor_coverage_planner_ground.cpp.o
+/usr/bin/ranlib devel/lib/libsensor_coverage_planner_ground.a

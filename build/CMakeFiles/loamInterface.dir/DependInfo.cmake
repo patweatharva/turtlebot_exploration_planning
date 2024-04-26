@@ -25,6 +25,8 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "/opt/ros/noetic/include"
   "/opt/ros/noetic/share/xmlrpcpp/cmake/../../../include/xmlrpcpp"
   "../include"
+  "../or-tools/include"
+  "/opt/nea/topaz/include"
   "/usr/include/vtk-7.1"
   "/usr/include/freetype2"
   "/usr/include/eigen3"
