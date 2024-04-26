@@ -1,0 +1,6 @@
+<launch>
+
+  <node pkg="loam_interface" type="loamInterface" name="loamInterface" output="screen" required="true">
+  </node>
+
+</launch>
