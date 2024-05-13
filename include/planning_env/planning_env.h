@@ -337,7 +337,6 @@ private:
   pointcloud_utils_ns::VerticalSurfaceExtractor vertical_frontier_extractor_;
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr collision_cloud_;
-  // pcl::PointCloud<pcl::PointXYZI>::Ptr rolling_free_occupancy_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<PlannerCloudPointType>> diff_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> terrain_cloud_;
 
