@@ -35,6 +35,12 @@ bool ViewPointManagerParameter::ReadParameters(ros::NodeHandle& nh)
   kCollisionGridResolution.x() = misc_utils_ns::getParam<double>(nh, "kCollisionGridResolutionX", 0.5);
   kCollisionGridResolution.y() = misc_utils_ns::getParam<double>(nh, "kCollisionGridResolutionY", 0.5);
   kCollisionGridResolution.z() = misc_utils_ns::getParam<double>(nh, "kCollisionGridResolutionZ", 0.5);
+  
+  kFreeOccupancyGridResolution.x() = misc_utils_ns::getParam<double>(nh, "kFreeOccupancyGridResolutionX", 0.2);
+  kFreeOccupancyGridResolution.y() = misc_utils_ns::getParam<double>(nh, "kFreeOccupancyGridResolutionY", 0.2);
+  kFreeOccupancyGridResolution.z() = misc_utils_ns::getParam<double>(nh, "kFreeOccupancyGridResolutionZ", 0.1);
+  kViewPointFreeOccupancyMargin = misc_utils_ns::getParam<double>(nh, "kViewPointOccupancyGridMargin", 0.1);
+
   kLineOfSightStopAtNearestObstacle = misc_utils_ns::getParam<bool>(nh, "kLineOfSightStopAtNearestObstacle", true);
   kCheckDynamicObstacleCollision = misc_utils_ns::getParam<bool>(nh, "kCheckDynamicObstacleCollision", true);
   kCollisionFrameCountMax = misc_utils_ns::getParam<int>(nh, "kCollisionFrameCountMax", 3);
@@ -54,6 +60,13 @@ bool ViewPointManagerParameter::ReadParameters(ros::NodeHandle& nh)
   {
     kCollisionGridSize(i) =
         ceil((kNumber(i) * kResolution(i) + kViewPointCollisionMargin * 2) / kCollisionGridResolution(i));
+  }
+
+  kFreeOccupancyGridSize = Eigen::Vector3i::Ones();
+  for (int i = 0; i < dimension_; i++)
+  {
+    kFreeOccupancyGridSize(i) =
+        ceil((kNumber(i) * kResolution(i)) / kFreeOccupancyGridResolution(i));
   }
 
   kCoverageOcclusionThr = misc_utils_ns::getParam<double>(nh, "kCoverageOcclusionThr", 1.0);
@@ -202,6 +215,15 @@ void ViewPointManager::GetCollisionCorrespondence()
       vp_.kCollisionGridSize, viewpoint_index_correspondence, collision_grid_origin_, vp_.kCollisionGridResolution, 2);
   collision_point_count_.resize(collision_grid_->GetCellNumber(), 0);
 
+  free_occupancy_grid_origin_ = Eigen::Vector3d::Zero();
+  for (int i = 0; i < vp_.dimension_; i++)
+  {
+    free_occupancy_grid_origin_(i) -= vp_.kViewPointFreeOccupancyMargin - vp_.kCollisionGridResolution(i);
+  }
+  std::vector<int> viewpoint_free_free_occupancy_index_correspondence;
+  free_occupancy_grid_ = std::make_unique<grid_ns::Grid<std::vector<int>>>(
+      vp_.kFreeOccupancyGridSize, viewpoint_free_free_occupancy_index_correspondence, free_occupancy_grid_origin_, vp_.kFreeOccupancyGridResolution, 2);
+
   pcl::PointCloud<pcl::PointXYZI>::Ptr viewpoint_cloud(new pcl::PointCloud<pcl::PointXYZI>());
   pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtree(new pcl::KdTreeFLANN<pcl::PointXYZI>());
 
@@ -228,7 +250,7 @@ void ViewPointManager::GetCollisionCorrespondence()
   kdtree->setInputCloud(viewpoint_cloud);
   std::vector<int> nearby_viewpoint_indices;
   std::vector<float> nearby_viewpoint_sqdist;
-  int count = 0;
+  // int count = 0;
   for (int x = 0; x < vp_.kCollisionGridSize.x(); x++)
   {
     for (int y = 0; y < vp_.kCollisionGridSize.y(); y++)
@@ -250,6 +272,35 @@ void ViewPointManager::GetCollisionCorrespondence()
           int viewpoint_ind = (int)(viewpoint_cloud->points[ind].intensity);
           MY_ASSERT(viewpoint_ind >= 0 && viewpoint_ind < vp_.kViewPointNumber);
           collision_grid_->GetCell(grid_ind).push_back(viewpoint_ind);
+        }
+      }
+    }
+  }
+
+  // std::cout << "computing collision grid viewpoint cloud size: " << viewpoint_cloud->points.size() << std::endl;
+  std::vector<int> nearby_free_occupancy_viewpoint_indices;
+  std::vector<float> nearby_free_occupancy_viewpoint_sqdist;
+  // int count = 0;
+  for (int x = 0; x < vp_.kFreeOccupancyGridSize.x(); x++)
+  {
+    for (int y = 0; y < vp_.kFreeOccupancyGridSize.y(); y++)
+    {
+      for (int z = 0; z < vp_.kFreeOccupancyGridSize.z(); z++)
+      {
+        Eigen::Vector3d query_point_position = free_occupancy_grid_->Sub2Pos(x, y, z);
+        pcl::PointXYZI query_point;
+        query_point.x = query_point_position.x();
+        query_point.y = query_point_position.y();
+        query_point.z = query_point_position.z();
+        kdtree->radiusSearch(query_point, vp_.kViewPointFreeOccupancyMargin, nearby_free_occupancy_viewpoint_indices,
+                             nearby_free_occupancy_viewpoint_sqdist);
+        int grid_ind = free_occupancy_grid_->Sub2Ind(x, y, z);
+        for (int i = 0; i < nearby_free_occupancy_viewpoint_indices.size(); i++)
+        {
+          int ind = nearby_free_occupancy_viewpoint_indices[i];
+          int viewpoint_ind = (int)(viewpoint_cloud->points[ind].intensity);
+          MY_ASSERT(viewpoint_ind >= 0 && viewpoint_ind < vp_.kViewPointNumber);
+          free_occupancy_grid_->GetCell(grid_ind).push_back(viewpoint_ind);
         }
       }
     }
@@ -545,7 +596,7 @@ void ViewPointManager::CheckViewPointLineOfSightHelper(const Eigen::Vector3i& st
 
   // float angle = atan2(end_sub.y() - start_sub.y(), end_sub.x() - start_sub.x());
 
-  // if ((abs(angle) > 3.14f/4.5f) && (ray_cast_cells.size() > 1))
+  // if ((abs(angle-heading) > 3.14f/4.5f) && (ray_cast_cells.size() > 1))
   // {
   //   for (int i = 1; i < ray_cast_cells.size(); i++)
   //   {
@@ -709,9 +760,40 @@ void ViewPointManager::CheckViewPointLineOfSight()
         int array_ind = grid_->GetArrayInd(end_sub);
         if (!checked[array_ind])
         {
-          CheckViewPointLineOfSightHelper(robot_sub, end_sub, max_sub, min_sub);
+          CheckViewPointLineOfSightHelper(robot_sub, end_sub, max_sub, min_sub, robot_yaw_);
           checked[array_ind] = true;
         }
+      }
+    }
+  }
+}
+
+void ViewPointManager::CheckViewPointOccupation(const pcl::PointCloud<pcl::PointXYZI>::Ptr& free_occupation_cloud)
+{
+  if (!initialized_)
+    return;
+
+  for (int i = 0; i < viewpoints_.size(); i++)
+  {
+    SetViewPointInFreeOccupation(i, false, true);
+  }
+
+  free_occupancy_grid_origin_ = origin_;// - Eigen::Vector3d::Ones() * vp_.kViewPointFreeOccupancyMargin / 2.0;
+  free_occupancy_grid_->SetOrigin(free_occupancy_grid_origin_);
+
+  for (const auto& point : free_occupation_cloud->points)
+  {
+    Eigen::Vector3i free_occupancy_grid_sub = free_occupancy_grid_->Pos2Sub(point.x, point.y, point.z);
+    if (free_occupancy_grid_->InRange(free_occupancy_grid_sub))
+    {
+      int free_occupancy_grid_ind = free_occupancy_grid_->Sub2Ind(free_occupancy_grid_sub);
+
+      std::vector<int> free_occupancy_viewpoint_indices = free_occupancy_grid_->GetCellValue(free_occupancy_grid_ind);
+      for (int i = 0; i < free_occupancy_viewpoint_indices.size(); i++)
+      {
+        int viewpoint_ind = free_occupancy_viewpoint_indices[i];
+        MY_ASSERT(viewpoint_ind >= 0 && viewpoint_ind < vp_.kViewPointNumber);
+        SetViewPointInFreeOccupation(viewpoint_ind, true);
       }
     }
   }
@@ -1105,6 +1187,18 @@ void ViewPointManager::SetViewPointInCurrentFrameLineOfSight(int viewpoint_ind, 
   int array_ind = GetViewPointArrayInd(viewpoint_ind, use_array_ind);
   viewpoints_[array_ind].SetInCurrentFrameLineOfSight(in_current_frame_line_of_sight);
 }
+// In current frame line of sight
+bool ViewPointManager::ViewPointInFreeOccupation(int viewpoint_ind, bool use_array_ind)
+{
+  int array_ind = GetViewPointArrayInd(viewpoint_ind, use_array_ind);
+  return viewpoints_[array_ind].InFreeOccupation();
+}
+void ViewPointManager::SetViewPointInFreeOccupation(int viewpoint_ind, bool in_free_occupation,
+                                                             bool use_array_ind)
+{
+  int array_ind = GetViewPointArrayInd(viewpoint_ind, use_array_ind);
+  viewpoints_[array_ind].SetInFreeOcupation(in_free_occupation);
+}
 // Position
 geometry_msgs::Point ViewPointManager::GetViewPointPosition(int viewpoint_ind, bool use_array_ind)
 {
@@ -1240,10 +1334,7 @@ int ViewPointManager::GetViewPointCandidate()
   for (int i = 0; i < vp_.kViewPointNumber; i++)
   {
     SetViewPointCandidate(i, false);
-    bool a = ViewPointInLineOfSight(i);
-    bool b = ViewPointInCollision(i);
-    bool c = ViewPointConnected(i);
-    if (!ViewPointInCollision(i) && ViewPointInLineOfSight(i) && ViewPointConnected(i))
+    if (!ViewPointInCollision(i) && ViewPointInLineOfSight(i) && ViewPointConnected(i) && ViewPointInFreeOccupation(i))
     {
       SetViewPointCandidate(i, true);
       candidate_indices_.push_back(i);

@@ -88,6 +88,15 @@ public:
     return in_current_frame_line_of_sight_;
   }
 
+  void SetInFreeOcupation(bool in_free_occupation)
+  {
+    in_free_occupation_ = in_free_occupation;
+  }
+  bool InFreeOccupation() const
+  {
+    return in_free_occupation_;
+  }
+
   void SetConnected(bool connected)
   {
     connected_ = connected;
@@ -253,6 +262,8 @@ private:
   bool has_terrain_neighbor_;
   // Whether the viewpoint is in line of sight in the current frame
   bool in_current_frame_line_of_sight_;
+  // Whether the viewpoint is in free occupation
+  bool in_free_occupation_;
   // Indices of the covered points
   std::vector<int> covered_point_list_;
   // Indices of the covered frontier points

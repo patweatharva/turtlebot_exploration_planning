@@ -59,6 +59,11 @@ struct ViewPointManagerParameter
   double kCollisionGridZScale;
   int kCollisionPointThr;
 
+  // Occupancy grid
+  Eigen::Vector3i kFreeOccupancyGridSize;
+  Eigen::Vector3d kFreeOccupancyGridResolution;
+  double kViewPointFreeOccupancyMargin;
+
   // Line of Sight Check
   bool kLineOfSightStopAtNearestObstacle;
   bool kCheckDynamicObstacleCollision;
@@ -143,6 +148,7 @@ public:
   void CheckViewPointLineOfSightHelper(const Eigen::Vector3i& start_sub, const Eigen::Vector3i& end_sub,
                                        const Eigen::Vector3i& max_sub, const Eigen::Vector3i& min_sub);
   void CheckViewPointLineOfSight();
+  void CheckViewPointOccupation(const pcl::PointCloud<pcl::PointXYZI>::Ptr& collision_cloud);
   void CheckViewPointInFOV();
   bool InFOV(const Eigen::Vector3d& point_position, const Eigen::Vector3d& viewpoint_position);
   bool InFOVAndRange(const Eigen::Vector3d& point_position, const Eigen::Vector3d& viewpoint_position);
@@ -282,6 +288,10 @@ public:
   void SetViewPointInCurrentFrameLineOfSight(int viewpoint_ind, bool in_current_frame_line_of_sight,
                                              bool use_array_ind = false);
 
+  bool ViewPointInFreeOccupation(int viewpoint_ind, bool use_array_ind = false);
+  void SetViewPointInFreeOccupation(int viewpoint_ind, bool in_free_occupation,
+                                             bool use_array_ind = false);
+
   geometry_msgs::Point GetViewPointPosition(int viewpoint_ind, bool use_array_ind = false);
   void SetViewPointPosition(int viewpoint_ind, geometry_msgs::Point position, bool use_array_ind = false);
 
@@ -356,8 +366,10 @@ private:
   Eigen::Vector3d robot_position_;
   Eigen::Vector3d origin_;
   Eigen::Vector3d collision_grid_origin_;
+  Eigen::Vector3d free_occupancy_grid_origin_;
   Eigen::Vector3d local_planning_horizon_size_;
   std::unique_ptr<grid_ns::Grid<std::vector<int>>> collision_grid_;
+  std::unique_ptr<grid_ns::Grid<std::vector<int>>> free_occupancy_grid_;
   std::vector<int> collision_point_count_;
   std::vector<std::vector<int>> candidate_viewpoint_graph_;
   std::vector<std::vector<double>> candidate_viewpoint_dist_;
