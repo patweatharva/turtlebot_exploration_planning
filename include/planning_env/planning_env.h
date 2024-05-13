@@ -102,14 +102,14 @@ public:
       // Update rolling occupancy grid
       rolled_in_occupancy_cloud_->cloud_ = pointcloud_manager_->GetRolledInOccupancyCloud();
       pointcloud_manager_->ClearNeighborCellOccupancyCloud();
-      // rolled_in_occupancy_cloud_->Publish();
+      rolled_in_occupancy_cloud_->Publish();
       rolling_occupancy_grid_->UpdateOccupancyStatus(rolled_in_occupancy_cloud_->cloud_);
     }
     if (occupancy_grid_rolling)
     {
       // Store and retrieve occupancy cloud
       rolled_out_occupancy_cloud_->cloud_ = rolling_occupancy_grid_->GetRolledOutOccupancyCloud();
-      // rolled_out_occupancy_cloud_->Publish();
+      rolled_out_occupancy_cloud_->Publish();
       pointcloud_manager_->StoreOccupancyCloud(rolled_out_occupancy_cloud_->cloud_);
 
       pointcloud_manager_->GetOccupancyCloud(pointcloud_manager_occupancy_cloud_->cloud_);
@@ -140,7 +140,9 @@ public:
         rolling_occupancy_grid_->UpdateOccupancy<PCLPointType>(cloud);
         rolling_occupancy_grid_->RayTrace(robot_position_);
         rolling_occupancy_grid_->GetVisualizationCloud(rolling_occupancy_grid_cloud_->cloud_);
+        rolling_occupancy_grid_->GetFreeOccupancyCloud(rolling_free_occupancy_cloud_->cloud_);
         rolling_occupancy_grid_cloud_->Publish();
+        rolling_free_occupancy_cloud_->Publish();
       }
     }
   }
@@ -276,6 +278,12 @@ public:
   {
     return collision_cloud_;
   }
+
+  pcl::PointCloud<pcl::PointXYZI>::Ptr GetRollingFreeOccupancyCloud()
+  {
+    return rolling_free_occupancy_cloud_->cloud_;
+  }
+
   pcl::PointCloud<PlannerCloudPointType>::Ptr GetStackedCloud()
   {
     return stacked_cloud_->cloud_;
@@ -329,6 +337,7 @@ private:
   pointcloud_utils_ns::VerticalSurfaceExtractor vertical_frontier_extractor_;
 
   pcl::PointCloud<pcl::PointXYZI>::Ptr collision_cloud_;
+  // pcl::PointCloud<pcl::PointXYZI>::Ptr rolling_free_occupancy_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<PlannerCloudPointType>> diff_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> terrain_cloud_;
 
@@ -338,6 +347,7 @@ private:
   std::unique_ptr<pointcloud_manager_ns::PointCloudManager> pointcloud_manager_;
   std::unique_ptr<rolling_occupancy_grid_ns::RollingOccupancyGrid> rolling_occupancy_grid_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> rolling_occupancy_grid_cloud_;
+  std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> rolling_free_occupancy_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> rolling_frontier_cloud_;
   std::unique_ptr<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>> rolling_filtered_frontier_cloud_;
 
