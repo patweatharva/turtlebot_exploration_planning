@@ -77,6 +77,7 @@ public:
     return occupancy_cloud_;
   }
   void GetVisualizationCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr& vis_cloud);
+  void GetFreeOccupancyCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr& rolling_free_occupancy_cloud);
 
 private:
   bool initialized_;

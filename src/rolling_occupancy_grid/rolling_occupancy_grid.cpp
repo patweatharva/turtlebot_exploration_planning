@@ -34,8 +34,9 @@ RollingOccupancyGrid::RollingOccupancyGrid(ros::NodeHandle& nh) : initialized_(f
   {
     grid_size_(i) = static_cast<int>(range_(i) / resolution_(i));
     rollover_step_size_(i) = static_cast<int>(rollover_range_(i) / resolution_(i));
-    origin_(i) = -range_(i) / 2;
+    origin_(i) =  -range_(i) / 2;
   }
+  // origin_(2) = -0.005;
 
   rolling_grid_ = std::make_unique<rolling_grid_ns::RollingGrid>(grid_size_);
   occupancy_array_ = std::make_unique<grid_ns::Grid<CellState>>(grid_size_, UNKNOWN, origin_, resolution_);
@@ -381,7 +382,7 @@ void RollingOccupancyGrid::GetFrontier(pcl::PointCloud<pcl::PointXYZI>::Ptr& fro
         point.x = position.x();
         point.y = position.y();
         point.z = position.z();
-        point.intensity = 0;
+        point.intensity = 0.5;
         frontier_cloud->points.push_back(point);
       }
     }
@@ -406,6 +407,7 @@ void RollingOccupancyGrid::GetVisualizationCloud(pcl::PointCloud<pcl::PointXYZI>
       if (occupancy_array_->GetCellValue(array_ind) == CellState::OCCUPIED)
       {
         point.intensity = 0.0;
+        
       }
       else if (occupancy_array_->GetCellValue(array_ind) == CellState::FREE)
       {
@@ -416,6 +418,31 @@ void RollingOccupancyGrid::GetVisualizationCloud(pcl::PointCloud<pcl::PointXYZI>
         point.intensity = 2.0;
       }
       vis_cloud->points.push_back(point);
+    }
+  }
+}
+
+void RollingOccupancyGrid::GetFreeOccupancyCloud(pcl::PointCloud<pcl::PointXYZI>::Ptr& rolling_free_occupancy_cloud)
+{
+  rolling_free_occupancy_cloud->clear();
+  int cell_number = occupancy_array_->GetCellNumber();
+  for (int i = 0; i < cell_number; i++)
+  {
+    int array_ind = rolling_grid_->GetArrayInd(i);
+    if (occupancy_array_->GetCellValue(array_ind) == CellState::FREE)
+    {
+      Eigen::Vector3d position = occupancy_array_->Ind2Pos(i);
+      pcl::PointXYZI point;
+      point.x = position.x();
+      point.y = position.y();
+      point.z = position.z();
+
+      point.intensity = 1.0;
+      if (point.z < -0.2 && point.z > -0.35)
+      {
+        point.z = robot_position_.z();
+        rolling_free_occupancy_cloud->points.push_back(point);
+      }
     }
   }
 }
