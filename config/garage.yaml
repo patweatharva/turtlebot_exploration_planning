@@ -24,7 +24,7 @@ kUseLineOfSightLookAheadPoint : true
 kNoExplorationReturnHome : true
 kExtendWayPointDistanceBig : 8.0
 kExtendWayPointDistanceSmall : 4.5
-kKeyposeCloudDwzFilterLeafSize : 0.1
+kKeyposeCloudDwzFilterLeafSize : 0.2
 kRushHomeDist : 10
 kAtHomeDistThreshold : 0.5
 kTerrainCollisionThreshold : 0.5
@@ -45,7 +45,7 @@ kUseCoverageBoundaryOnObjectSurface : false
 # Rolling occupancy grid
 rolling_occupancy_grid/resolution_x : 0.2
 rolling_occupancy_grid/resolution_y : 0.2
-rolling_occupancy_grid/resolution_z : 0.1
+rolling_occupancy_grid/resolution_z : 0.2
 
 kSurfaceCloudDwzLeafSize : 0.1            # down size cloud
 kCollisionCloudDwzLeafSize : 0.1
@@ -61,7 +61,7 @@ kMaxCellPointNum : 100000
 kPointCloudCellSize : 4
 # kPointCloudCellSize : 0.3
 # kPointCloudCellHeight : 1.8
-kPointCloudCellHeight : 0.3
+kPointCloudCellHeight : 0.2
 kPointCloudManagerNeighborCellNum : 5
 kCoverCloudZSqueezeRatio : 2.0
 
@@ -94,6 +94,12 @@ kCollisionGridZScale : 1.0
 kCollisionGridResolutionX : 0.1
 kCollisionGridResolutionY : 0.1
 kCollisionGridResolutionZ : 0.0
+
+kFreeOccupancyGridResolutionX : 0.2
+kFreeOccupancyGridResolutionY : 0.2
+kFreeOccupancyGridResolutionZ : 0.0
+kViewPointOccupancyGridMargin : 0.12
+
 kCollisionPointThr : 1
 kLineOfSightStopAtNearestObstacle : true
 kViewPointHeightFromTerrain : 0.75
@@ -102,7 +108,7 @@ kCheckDynamicObstacleCollision : false
 kCollisionFrameCountMax : 3
 
 kSensorRange : 2.0
-kNeighborRange : 2.0
+kNeighborRange : 0.1
 kCoverageOcclusionThr : 0.3
 kCoverageDilationRadius : 1.0
 
