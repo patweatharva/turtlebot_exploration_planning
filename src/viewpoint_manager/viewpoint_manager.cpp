@@ -760,7 +760,7 @@ void ViewPointManager::CheckViewPointLineOfSight()
         int array_ind = grid_->GetArrayInd(end_sub);
         if (!checked[array_ind])
         {
-          CheckViewPointLineOfSightHelper(robot_sub, end_sub, max_sub, min_sub, robot_yaw_);
+          CheckViewPointLineOfSightHelper(robot_sub, end_sub, max_sub, min_sub);
           checked[array_ind] = true;
         }
       }
