@@ -14,6 +14,7 @@
 InterfaceHandler::InterfaceHandler(ros::NodeHandle &nh, ros::NodeHandle &nh_p)
   {
     readParameters(nh_p);
+
     // odom_sub_ = nh.subscribe("/turtlebot/kobuki/odom_ground_truth", 1, &InterfaceHandler::odometryCallback, this);
     while (!listener_.canTransform(map_frame_, depth_camera_frame_, ros::Time(0))) {
       ros::Duration(0.1).sleep();
@@ -52,8 +53,8 @@ void InterfaceHandler::odometryCallback(const nav_msgs::Odometry::ConstPtr& odom
 
     // publish tf sensor messages
     sensorTrans.stamp_ = odom->header.stamp;
-    // sensorTrans.frame_id_ = "turtlebot/kobuki/realsense_depth";
-    sensorTrans.frame_id_ = "realsense_depth_frame";
+    sensorTrans.frame_id_ = "turtlebot/kobuki/realsense_depth";
+    // sensorTrans.frame_id_ = "realsense_depth_frame";
     sensorTrans.child_frame_id_ = "sensor";
     sensorTrans.setRotation(tf::Quaternion(0.0, 0.0, 0.0, 1.0));
     sensorTrans.setOrigin(tf::Vector3(0.0, 0.0, 0.0));
@@ -65,13 +66,13 @@ void InterfaceHandler::odometryCallback(const nav_msgs::Odometry::ConstPtr& odom
     mapTrans.frame_id_ = "turtlebot/kobuki/base_footprint";
     mapTrans.child_frame_id_ = "map";
 
-    odomData.pose.pose.position.x = 0.0;
-    odomData.pose.pose.position.y = 0.0;
-    odomData.pose.pose.position.z = 0.0;
-    odomData.pose.pose.orientation.x = 0.0;
-    odomData.pose.pose.orientation.y = 0.0;
-    odomData.pose.pose.orientation.z = 0.0;
-    odomData.pose.pose.orientation.w = 1.0;
+    // odomData.pose.pose.position.x = 0.0;
+    // odomData.pose.pose.position.y = 0.0;
+    // odomData.pose.pose.position.z = 0.0;
+    // odomData.pose.pose.orientation.x = 0.0;
+    // odomData.pose.pose.orientation.y = 0.0;
+    // odomData.pose.pose.orientation.z = 0.0;
+    // odomData.pose.pose.orientation.w = 1.0;
     // Create transform from odometry frame to base frame
     tf::Transform transformBaseToOdometry;
     transformBaseToOdometry.setOrigin(tf::Vector3(odomData.pose.pose.position.x,odomData.pose.pose.position.y, odomData.pose.pose.position.z));
@@ -94,22 +95,22 @@ void InterfaceHandler::laserCloudCallback(const sensor_msgs::PointCloud2ConstPtr
   {
     if (frameAInitialized)
     {
-      pcl::PointCloud<pcl::PointXYZ>::Ptr laserCloud(new pcl::PointCloud<pcl::PointXYZ>());
-      pcl::PointCloud<pcl::PointXYZ>::Ptr laserCloudOut(new pcl::PointCloud<pcl::PointXYZ>());
-      laserCloud->clear();
-      pcl::fromROSMsg(*laserCloudIn, *laserCloud);
-      
       // Lookup transform
       tf::StampedTransform transform;
 
       listener_.lookupTransform(map_frame_, depth_camera_frame_, ros::Time(), transform);
 
+      pcl::PointCloud<pcl::PointXYZ>::Ptr laserCloud(new pcl::PointCloud<pcl::PointXYZ>());
+      pcl::PointCloud<pcl::PointXYZ>::Ptr laserCloudOut(new pcl::PointCloud<pcl::PointXYZ>());
+      laserCloud->clear();
+      pcl::fromROSMsg(*laserCloudIn, *laserCloud);
+      
       pcl_ros::transformPointCloud(*laserCloud, *laserCloudOut, transform);
 
       if (flipRegisteredScan) {
         int laserCloudSize = laserCloudOut->points.size();
         for (int i = 0; i < laserCloudSize; i++) {
-          float temp = laserCloud->points[i].x;
+          float temp = laserCloudOut->points[i].x;
           laserCloudOut->points[i].x = laserCloudOut->points[i].z;
           laserCloudOut->points[i].z = laserCloudOut->points[i].y;
           laserCloudOut->points[i].y = temp;

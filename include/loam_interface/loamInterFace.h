@@ -52,7 +52,6 @@ class InterfaceHandler
     tf::StampedTransform sensorTrans;
     tf::StampedTransform mapTrans;
 
-
     ros::Subscriber odom_sub_;
     ros::Subscriber laser_sub_;
     ros::Publisher odometry_pub_;
