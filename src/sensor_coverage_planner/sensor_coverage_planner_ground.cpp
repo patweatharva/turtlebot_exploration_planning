@@ -95,6 +95,8 @@ void PlannerData::Initialize(ros::NodeHandle& nh, ros::NodeHandle& nh_p)
       std::make_unique<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>>(nh, "exploring_cell_vis_cloud", kWorldFrameID);
   collision_cloud_ =
       std::make_unique<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>>(nh, "collision_cloud", kWorldFrameID);
+  rolling_free_occupancy_cloud_ =
+      std::make_unique<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>>(nh, "rolling_free_occupancy_cloud", kWorldFrameID);
   lookahead_point_cloud_ =
       std::make_unique<pointcloud_utils_ns::PCLCloud<pcl::PointXYZI>>(nh, "lookahead_point_cloud", kWorldFrameID);
   keypose_graph_vis_cloud_ =
@@ -233,7 +235,7 @@ bool SensorCoveragePlanner3D::initialize(ros::NodeHandle& nh, ros::NodeHandle& n
   pointcloud_manager_neighbor_cells_origin_pub_ =
       nh.advertise<geometry_msgs::PointStamped>("pointcloud_manager_neighbor_cells_origin", 1);
   
-  pointcloud_test_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/test_pcl", 1);
+  // pointcloud_test_pub_ = nh.advertise<sensor_msgs::PointCloud2>("/test_pcl", 1);
 
   return true;
 }
@@ -251,7 +253,7 @@ void SensorCoveragePlanner3D::StateEstimationCallback(const nav_msgs::Odometry::
   pd_.robot_position_ = state_estimation_msg->pose.pose.position;
   // pd_.robot_position_.x = 0.0f;
   // pd_.robot_position_.y = 0.0f;
-  pd_.robot_position_.z =-0.4f;
+  pd_.robot_position_.z =-0.2f;
   // Todo: use a boolean
   if (std::abs(pd_.initial_position_.x()) < 0.01 && std::abs(pd_.initial_position_.y()) < 0.01 &&
       std::abs(pd_.initial_position_.z()) < 0.01)
@@ -300,7 +302,7 @@ void SensorCoveragePlanner3D::RegisteredScanCallback(const sensor_msgs::PointClo
   pd_.planning_env_->UpdateRobotPosition(pd_.robot_position_);
   pd_.planning_env_->UpdateRegisteredCloud<pcl::PointXYZI>(pd_.registered_cloud_->cloud_);
 
-  registered_cloud_count_ = (registered_cloud_count_ + 1) % 5;
+  registered_cloud_count_ = (registered_cloud_count_ + 1) % 1;
   if (registered_cloud_count_ == 0)
   {
     // initialized_ = true;
@@ -319,9 +321,9 @@ void SensorCoveragePlanner3D::RegisteredScanCallback(const sensor_msgs::PointClo
     // pd_.keypose_cloud_->Publish();
     // pd_.registered_scan_stack_->cloud_->clear();
 
-    sensor_msgs::PointCloud2 pc_msg;
-    pcl::toROSMsg(*(pd_.keypose_cloud_->cloud_), pc_msg);
-    pointcloud_test_pub_.publish(pc_msg);
+    // sensor_msgs::PointCloud2 pc_msg;
+    // pcl::toROSMsg(*(registered_scan_tmp), pc_msg);
+    // pointcloud_test_pub_.publish(pc_msg);
 
     keypose_cloud_update_ = true;
   }
@@ -483,6 +485,11 @@ int SensorCoveragePlanner3D::UpdateViewPoints()
   pd_.collision_cloud_->cloud_ = pd_.planning_env_->GetCollisionCloud();
   collision_cloud_timer.Stop(false);
 
+  misc_utils_ns::Timer rolling_free_occupancy_grid_timer("update rolling occupancy grid");
+  rolling_free_occupancy_grid_timer.Start();
+  pd_.rolling_free_occupancy_cloud_->cloud_ = pd_.planning_env_->GetRollingFreeOccupancyCloud();
+  rolling_free_occupancy_grid_timer.Stop(false);
+
   misc_utils_ns::Timer viewpoint_manager_update_timer("update viewpoint manager");
   viewpoint_manager_update_timer.Start();
   if (pp_.kUseTerrainHeight)
@@ -495,6 +502,7 @@ int SensorCoveragePlanner3D::UpdateViewPoints()
     *(pd_.collision_cloud_->cloud_) += *(pd_.terrain_ext_collision_cloud_->cloud_);
   }
   pd_.viewpoint_manager_->CheckViewPointCollision(pd_.collision_cloud_->cloud_);
+  pd_.viewpoint_manager_->CheckViewPointOccupation(pd_.rolling_free_occupancy_cloud_->cloud_);
   pd_.viewpoint_manager_->CheckViewPointLineOfSight();
   pd_.viewpoint_manager_->CheckViewPointConnectivity();
   int viewpoint_candidate_count = pd_.viewpoint_manager_->GetViewPointCandidate();
@@ -505,6 +513,7 @@ int SensorCoveragePlanner3D::UpdateViewPoints()
 
   // For visualization
   pd_.collision_cloud_->Publish();
+  pd_.rolling_free_occupancy_cloud_->Publish();
   // pd_.collision_grid_cloud_->Publish();
   pd_.viewpoint_manager_->GetCollisionViewPointVisCloud(pd_.viewpoint_in_collision_cloud_->cloud_);
   pd_.viewpoint_in_collision_cloud_->Publish();
