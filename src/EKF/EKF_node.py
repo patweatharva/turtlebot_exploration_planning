@@ -9,7 +9,7 @@ from EKF_3DOF_InputDisplacement_Heading import *
 from Odometry import *
 from Magnetometer import *
 
-odom_freq   = 0.1
+odom_freq   = 0.01
 odom_window = 100000.0
 
 
@@ -66,7 +66,7 @@ class EKF:
                                                             odom.pose.pose.orientation.z,
                                                             odom.pose.pose.orientation.w])
         self.current_pose = np.array([odom.pose.pose.position.x, odom.pose.pose.position.y, yaw])
-
+        self.heading = yaw-self.yawOffset
         # Get heading as a measurement to update filter
         if self.mag.read_magnetometer(yaw-self.yawOffset) and self.ekf_filter is not None:
             self.ekf_filter.gotNewHeadingData()
@@ -97,13 +97,13 @@ class EKF:
     # Publish Filter results
     def sensor_pub(self, timestamp):
         # Transform theta from euler to quaternion
-        quaternion = tf.transformations.quaternion_from_euler(0, 0, float((self.xk[2, 0])))  # Convert euler angles to quaternion
+        quaternion = tf.transformations.quaternion_from_euler(0, 0, self.heading)  # Convert euler angles to quaternion
 
         # Publish predicted odom
         odom = Odometry()
         odom.header.stamp = rospy.Time.now()
         odom.header.frame_id = "map"
-        # odom.child_frame_id = "turtlebot/kobuki/predicted_base_footprint"
+        odom.child_frame_id = "turtlebot/kobuki/base_footprint"
 
 
         odom.pose.pose.position.x = self.xk[0]
@@ -175,7 +175,4 @@ if __name__ == '__main__':
     rospy.init_node('EKF_node')
     node = EKF('/turtlebot/joint_states')	
     
-    rate = rospy.Rate(odom_freq)
-    while not rospy.is_shutdown():
-        node.spin()
-        rate.sleep()
+    rospy.spin()
