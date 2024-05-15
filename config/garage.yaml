@@ -22,13 +22,13 @@ kCheckTerrainCollision : true
 kExtendWayPoint : true
 kUseLineOfSightLookAheadPoint : true
 kNoExplorationReturnHome : true
-kExtendWayPointDistanceBig : 8.0
-kExtendWayPointDistanceSmall : 4.5
+kExtendWayPointDistanceBig : 3.0
+kExtendWayPointDistanceSmall : 0.2
 kKeyposeCloudDwzFilterLeafSize : 0.2
 kRushHomeDist : 10
 kAtHomeDistThreshold : 0.5
 kTerrainCollisionThreshold : 0.5
-kLookAheadDistance : 8
+kLookAheadDistance : 2
 kUseMomentum : false 
 kDirectionChangeCounterThr : 6
 kDirectionNoChangeCounterThr : 5

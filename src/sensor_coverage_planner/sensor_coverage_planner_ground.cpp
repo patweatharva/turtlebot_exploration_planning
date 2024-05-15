@@ -1350,21 +1350,21 @@ void SensorCoveragePlanner3D::execute(const ros::TimerEvent&)
     near_home_ = GetRobotToHomeDistance() < pp_.kRushHomeDist;
     at_home_ = GetRobotToHomeDistance() < pp_.kAtHomeDistThreshold;
 
-    // if (pd_.grid_world_->IsReturningHome() && pd_.local_coverage_planner_->IsLocalCoverageComplete() &&
-    //     (ros::Time::now() - start_time_).toSec() > 5)
-    // {
-    //   if (!exploration_finished_)
-    //   {
-    //     PrintExplorationStatus("Exploration completed, returning home", false);
-    //   }
-    //   exploration_finished_ = true;
-    // }
+    if (pd_.grid_world_->IsReturningHome() && pd_.local_coverage_planner_->IsLocalCoverageComplete() &&
+        (ros::Time::now() - start_time_).toSec() > 5)
+    {
+      if (!exploration_finished_)
+      {
+        PrintExplorationStatus("Exploration completed, returning home", false);
+      }
+      exploration_finished_ = true;
+    }
 
-    // if (exploration_finished_ && at_home_ && !stopped_)
-    // {
-    //   PrintExplorationStatus("Return home completed", false);
-    //   stopped_ = true;
-    // }
+    if (exploration_finished_ && at_home_ && !stopped_)
+    {
+      PrintExplorationStatus("Return home completed", false);
+      stopped_ = true;
+    }
 
     pd_.exploration_path_ = ConcatenateGlobalLocalPath(global_path, local_path);
 

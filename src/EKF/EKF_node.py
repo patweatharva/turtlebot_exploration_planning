@@ -27,10 +27,10 @@ class EKF:
 
         # PUBLISHERS      
         # Publisher for sending Odometry
-        self.odom_pub           = rospy.Publisher('/state_estimation_at_scan', Odometry, queue_size=1)
+        # self.odom_pub           = rospy.Publisher('/state_estimation', Odometry, queue_size=1)
         
         # SUBSCRIBERS
-        self.odom_sub               = rospy.Subscriber(odom_topic, JointState, self.get_odom) 
+        # self.odom_sub               = rospy.Subscriber(odom_topic, JointState, self.get_odom) 
 
         if self.mode == "SIL":
             self.ground_truth_sub       = rospy.Subscriber('/turtlebot/kobuki/odom_ground_truth', Odometry, self.get_ground_truth) 
@@ -39,15 +39,15 @@ class EKF:
         self.odom   = OdomData()
         self.mag    = Magnetometer()
 
-        if self.mode == "SIL":
-            # Move
-            while True:
-                if self.current_pose is not None:
-                    # self.xk           = self.current_pose.reshape(3,1)
-                    # self.xk           = np.zeros((3, 1))
-                    # self.Pk           = np.zeros((3, 3))
-                    self.yawOffset    = self.current_pose[2]
-                    break
+        # if self.mode == "SIL":
+        #     # Move
+        #     while True:
+        #         if self.current_pose is not None:
+        #             # self.xk           = self.current_pose.reshape(3,1)
+        #             # self.xk           = np.zeros((3, 1))
+        #             # self.Pk           = np.zeros((3, 3))
+        #             self.yawOffset    = self.current_pose[2]
+        #             break
         
         # SERVICES
     
@@ -61,15 +61,44 @@ class EKF:
     
     # Ground Truth callback: Gets current robot pose and stores it into self.current_pose. Besides, get heading as a measurement to update filter
     def get_ground_truth(self, odom):
-        _, _, yaw = tf.transformations.euler_from_quaternion([odom.pose.pose.orientation.x, 
+        roll, pitch, yaw = tf.transformations.euler_from_quaternion([odom.pose.pose.orientation.x, 
                                                             odom.pose.pose.orientation.y,
                                                             odom.pose.pose.orientation.z,
                                                             odom.pose.pose.orientation.w])
         self.current_pose = np.array([odom.pose.pose.position.x, odom.pose.pose.position.y, yaw])
-        self.heading = yaw-self.yawOffset
-        # Get heading as a measurement to update filter
-        if self.mag.read_magnetometer(yaw-self.yawOffset) and self.ekf_filter is not None:
-            self.ekf_filter.gotNewHeadingData()
+
+        # Define the translation and rotation for the inverse TF (base_footprint to world)
+        translation = (odom.pose.pose.position.x, odom.pose.pose.position.y, odom.pose.pose.position.z) # Set the x, y, z coordinates
+
+        quaternion = tf.transformations.quaternion_from_euler(roll, pitch, yaw)  # Convert euler angles to quaternion
+        rotation = (quaternion[0], quaternion[1], quaternion[2], quaternion[3])
+
+        # Invert the rotation by taking the quaternion conjugate
+        rotation_inv = tf.transformations.quaternion_conjugate(rotation)
+
+        # Convert translation to a numpy array for easier computation
+        translation_np = np.array(translation)
+
+        # Apply the inverse rotation to the negative translation
+        translation_inv_np = -translation_np
+        translation_inv_np = tf.transformations.quaternion_matrix(rotation_inv)[:3, :3].dot(translation_inv_np)
+
+        # Convert the resulting translation back to a list
+        translation_inv = translation_inv_np.tolist()
+
+        # Publish the inverse TF from world to base_footprint
+        tf.TransformBroadcaster().sendTransform(
+            translation_inv,
+            rotation_inv,
+            odom.header.stamp,
+            "turtlebot/kobuki/base_footprint",
+            "map"
+        )
+
+        # self.heading = yaw-self.yawOffset
+        # # Get heading as a measurement to update filter
+        # if self.mag.read_magnetometer(yaw-self.yawOffset) and self.ekf_filter is not None:
+        #     self.ekf_filter.gotNewHeadingData()
 
     # Odometry callback: Gets encoder reading to compute displacement of the robot as input of the EKF Filter.
     # Run EKF Filter with frequency of odometry reading
@@ -101,7 +130,7 @@ class EKF:
 
         # Publish predicted odom
         odom = Odometry()
-        odom.header.stamp = rospy.Time.now()
+        odom.header.stamp = timestamp
         odom.header.frame_id = "map"
         odom.child_frame_id = "turtlebot/kobuki/base_footprint"
 
