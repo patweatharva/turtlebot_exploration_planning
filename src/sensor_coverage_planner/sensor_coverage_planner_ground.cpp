@@ -302,7 +302,7 @@ void SensorCoveragePlanner3D::RegisteredScanCallback(const sensor_msgs::PointClo
   pd_.planning_env_->UpdateRobotPosition(pd_.robot_position_);
   pd_.planning_env_->UpdateRegisteredCloud<pcl::PointXYZI>(pd_.registered_cloud_->cloud_);
 
-  registered_cloud_count_ = (registered_cloud_count_ + 1) % 1;
+  registered_cloud_count_ = (registered_cloud_count_ + 1) % 5;
   if (registered_cloud_count_ == 0)
   {
     // initialized_ = true;
@@ -317,9 +317,9 @@ void SensorCoveragePlanner3D::RegisteredScanCallback(const sensor_msgs::PointClo
     pd_.registered_scan_stack_->cloud_->header.frame_id = "map";
     pcl::copyPointCloud(*(pd_.registered_scan_stack_->cloud_), *(pd_.keypose_cloud_->cloud_));
 
-    // pcl::copyPointCloud(*(pd_.registered_cloud_->cloud_), *(pd_.keypose_cloud_->cloud_));
-    // pd_.keypose_cloud_->Publish();
-    // pd_.registered_scan_stack_->cloud_->clear();
+    pcl::copyPointCloud(*(pd_.registered_cloud_->cloud_), *(pd_.keypose_cloud_->cloud_));
+    pd_.keypose_cloud_->Publish();
+    pd_.registered_scan_stack_->cloud_->clear();
 
     // sensor_msgs::PointCloud2 pc_msg;
     // pcl::toROSMsg(*(registered_scan_tmp), pc_msg);
@@ -1174,6 +1174,9 @@ void SensorCoveragePlanner3D::PublishWaypoint()
         lookahead_point_in_line_of_sight_ ? pp_.kExtendWayPointDistanceBig : pp_.kExtendWayPointDistanceSmall;
     if (r < extend_dist && pp_.kExtendWayPoint)
     {
+      // dx = dx * 1.8;
+      // dy = dy * 1.8;
+
       dx = dx / r * extend_dist;
       dy = dy / r * extend_dist;
     }
