@@ -253,6 +253,28 @@ public:
     return visible;
   }
 
+  template <class PointType>
+  bool VisibleByViewPointWithHeading(const PointType& point, int viewpoint_ind, float& heading)
+  {
+    MY_ASSERT(grid_->InRange(viewpoint_ind));
+    int array_ind = grid_->GetArrayInd(viewpoint_ind);
+    geometry_msgs::Point viewpoint_position = viewpoints_[array_ind].GetPosition();
+    if (std::abs(point.z - viewpoint_position.z) > vp_.kDiffZMax)
+    {
+      return false;
+    }
+    if (!misc_utils_ns::InFOVSimple(Eigen::Vector3d(point.x, point.y, point.z),
+                                    Eigen::Vector3d(viewpoint_position.x, viewpoint_position.y, viewpoint_position.z),
+                                    vp_.kVerticalFOVRatio, vp_.kSensorRange, vp_.kInFovXYDistThreshold,
+                                    vp_.kInFovZDiffThreshold))
+    {
+      return false;
+    }
+    bool visible = viewpoints_[array_ind].CheckVisibility<PointType>(point, vp_.kCoverageOcclusionThr);
+
+    return visible;
+  }
+
   // Viewpoint management
   void ResetViewPoint(int viewpoint_ind, bool use_array_ind = false);
   void ResetViewPointCoverage();
