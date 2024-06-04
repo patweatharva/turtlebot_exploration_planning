@@ -1335,6 +1335,7 @@ int ViewPointManager::GetViewPointCandidate()
   {
     SetViewPointCandidate(i, false);
     if (!ViewPointInCollision(i) && ViewPointInLineOfSight(i) && ViewPointConnected(i) && ViewPointInFreeOccupation(i))
+    // if (!ViewPointInCollision(i) && ViewPointInLineOfSight(i) && ViewPointConnected(i))
     {
       SetViewPointCandidate(i, true);
       candidate_indices_.push_back(i);

@@ -404,9 +404,10 @@ void RollingOccupancyGrid::GetVisualizationCloud(pcl::PointCloud<pcl::PointXYZI>
       point.x = position.x();
       point.y = position.y();
       point.z = position.z();
-      if (occupancy_array_->GetCellValue(array_ind) == CellState::OCCUPIED)
+      if (occupancy_array_->GetCellValue(array_ind) == CellState::OCCUPIED && point.z < -0.25)
       {
         point.intensity = 0.0;
+        vis_cloud->points.push_back(point);
         
       }
       else if (occupancy_array_->GetCellValue(array_ind) == CellState::FREE)
@@ -417,7 +418,7 @@ void RollingOccupancyGrid::GetVisualizationCloud(pcl::PointCloud<pcl::PointXYZI>
       {
         point.intensity = 2.0;
       }
-      vis_cloud->points.push_back(point);
+      // vis_cloud->points.push_back(point);
     }
   }
 }
@@ -438,7 +439,7 @@ void RollingOccupancyGrid::GetFreeOccupancyCloud(pcl::PointCloud<pcl::PointXYZI>
       point.z = position.z();
 
       point.intensity = 1.0;
-      if (point.z < -0.2 && point.z > -0.35)
+      if (point.z < -0.1 && point.z > -0.35)
       {
         point.z = robot_position_.z();
         rolling_free_occupancy_cloud->points.push_back(point);
