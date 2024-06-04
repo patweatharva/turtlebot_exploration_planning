@@ -78,7 +78,7 @@ GridWorld::GridWorld(ros::NodeHandle& nh) : initialized_(false), use_keypose_gra
   origin_.z = 0.0;
 
   Eigen::Vector3i grid_size(kRowNum, kColNum, kLevelNum);
-  Eigen::Vector3d grid_origin(0.0, 0.0, 0.0);
+  Eigen::Vector3d grid_origin(0.0, 0.0, -0.3);
   Eigen::Vector3d grid_resolution(kCellSize, kCellSize, kCellHeight);
   Cell cell_tmp;
   subspaces_ = std::make_unique<grid_ns::Grid<Cell>>(grid_size, cell_tmp, grid_origin, grid_resolution);
@@ -195,7 +195,7 @@ void GridWorld::UpdateNeighborCells(const geometry_msgs::Point& robot_position)
           geometry_msgs::Point subspace_center_geo_position;
           subspace_center_geo_position.x = subspace_center_position.x();
           subspace_center_geo_position.y = subspace_center_position.y();
-          subspace_center_geo_position.z = subspace_center_position.z();
+          subspace_center_geo_position.z = -subspace_center_position.z();
           subspaces_->GetCell(i, j, k).SetPosition(subspace_center_geo_position);
           subspaces_->GetCell(i, j, k).SetRoadmapConnectionPoint(subspace_center_position);
         }
